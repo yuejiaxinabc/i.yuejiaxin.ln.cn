@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爱不仅限于代码中</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f8;
+            overflow: hidden;
+        }
+        .pixel {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+        }
+        .popup {
+            position: fixed;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: "微软雅黑", sans-serif;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .start-card {
+            background-color: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .start-card h2 {
+            color: #e94057;
+            margin: 0 0 15px 0;
+        }
+        .start-card input {
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .start-card button {
+            padding: 8px 20px;
+            background-color: #e94057;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .call-popup {
+            position: fixed;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 10001;
+            display: none;
+        }
+        .call-popup button {
+            margin: 5px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .call-popup .accept {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .call-popup .reject {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .end-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            display: none;
+        }
+        .end-card {
+            background-color: #e94057;
+            color: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="start-screen" id="startScreen">
+        <div class="start-card">
+            <h2>❤️ Hello Ideal ❤️</h2>
+            <p>请选择一个模式</p>
+            <input type="range" id="modeRange" min="0" max="1" value="0">
+            <button id="startBtn">开始</button>
+        </div>
+    </div>
+    <div class="call-popup" id="callPopup">
+        <p>我想你了哦~</p>
+        <button class="accept">接听</button>
+        <button class="reject">挂断</button>
+    </div>
+    <div class="end-screen" id="endScreen">
+        <div class="end-card">
+            <p>END.</p>
+        </div>
+    </div>
+    <script>
+        // 暖心文字列表
+        const texts = [
+            "好好休息", "按时吃饭", "开心每一天", "保持微笑", "多喝⽔哦~",
+            "记得微笑", "注意身体", "一切安好", "保持心情", "平安喜乐",
+            "顺心如意", "保持活力", "万事胜意", "别太累", "好好爱自己"
+        ];
+        // 像素爱心的坐标（简化版）
+        const heartPixels = [
+            {x: 0, y: 3}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 2, y: 1}, {x: 2, y: 2},
+            {x: 2, y: 3}, {x: 2, y: 4}, {x: 3, y: 0}, {x: 3, y: 1}, {x: 3, y: 2},
+            {x: 3, y: 3}, {x: 3, y: 4}, {x: 3, y: 5}, {x: 4, y: 1}, {x: 4, y: 2},
+            {x: 4, y: 3}, {x: 4, y: 4}, {x: 5, y: 2}, {x: 5, y: 3}
+        ];
+        let mode = 0; // 0: 爱心模式，1: 满屏模式
+        let isRunning = false;
+        let pixelInterval, popupInterval, callInterval, endInterval;
+
+        // 初始化
+        document.getElementById('modeRange').addEventListener('input', function() {
+            mode = this.value;
+        });
+        document.getElementById('startBtn').addEventListener('click', start);
+        document.getElementById('callPopup').querySelector('.accept').addEventListener('click', function() {
+            document.getElementById('callPopup').style.display = 'none';
+            if (mode === '1') {
+                startPopups();
+            }
+        });
+        document.getElementById('callPopup').querySelector('.reject').addEventListener('click', function() {
+            document.getElementById('callPopup').style.display = 'none';
+            end();
+        });
+
+        // 开始
+        function start() {
+            document.getElementById('startScreen').style.display = 'none';
+            isRunning = true;
+            if (mode === '0') {
+                startHeart();
+            } else {
+                document.getElementById('callPopup').style.display = 'block';
+            }
+        }
+
+        // 像素爱心动画
+        function startHeart() {
+            let pixelIndex = 0;
+            pixelInterval = setInterval(() => {
+                if (pixelIndex >= heartPixels.length) {
+                    pixelIndex = 0;
+                    // 清除所有像素
+                    const pixels = document.querySelectorAll('.pixel');
+                    pixels.forEach(pixel => pixel.remove());
+                }
+                const pixel = heartPixels[pixelIndex];
+                const pixelEl = document.createElement('div');
+                pixelEl.className = 'pixel';
+                pixelEl.style.left = `${(window.innerWidth / 6) + pixel.x * 20}px`;
+                pixelEl.style.top = `${(window.innerHeight / 3) + pixel.y * 20}px`;
+                document.body.appendChild(pixelEl);
+                pixelIndex++;
+            }, 100);
+            // 定时显示弹窗
+            popupInterval = setInterval(createPopup, 2000);
+        }
+
+        // 满屏弹窗模式
+        function startPopups() {
+            popupInterval = setInterval(createPopup, 100);
+        }
+
+        // 创建弹窗
+        function createPopup() {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.innerText = texts[Math.floor(Math.random() * texts.length)];
+            // 随机位置
+            const x = Math.random() * (window.innerWidth - 120);
+            const y = Math.random() * (window.innerHeight - 60);
+            popup.style.left = `${x}px`;
+            popup.style.top = `${y}px`;
+            // 随机背景颜色
+            const r = Math.floor(Math.random() * 100) + 155;
+            const g = Math.floor(Math.random() * 100) + 155;
+            const b = Math.floor(Math.random() * 100) + 155;
+            popup.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            document.body.appendChild(popup);
+            // 定时移除
+            setTimeout(() => {
+                popup.style.opacity = '0';
+                popup.style.transition = 'opacity 0.5s ease-in-out';
+                setTimeout(() => {
+                    document.body.removeChild(popup);
+                }, 500);
+            }, 5000);
+        }
+
+        // 结束
+        function end() {
+            isRunning = false;
+            clearInterval(pixelInterval);
+            clearInterval(popupInterval);
+            clearInterval(callInterval);
+            clearInterval(endInterval);
+            // 清除所有像素和弹窗
+            const pixels = document.querySelectorAll('.pixel');
+            pixels.forEach(pixel => pixel.remove());
+            const popups = document.querySelectorAll('.popup');
+            popups.forEach(popup => popup.remove());
+            document.getElementById('endScreen').style.display = 'flex';
+            endInterval = setInterval(() => {
+                document.getElementById('endScreen').style.display = 'none';
+                document.getElementById('startScreen').style.display = 'flex';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
