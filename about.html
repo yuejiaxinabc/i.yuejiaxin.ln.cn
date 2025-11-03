@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我们 - i-code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", "PingFang SC", sans-serif;
+        }
+        body {
+            background-color: #ffffff;
+            padding: 20px 0;
+        }
+        /* 加载样式 - 复用时钟加载动画 */
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        .loader-container.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .clock-loader {
+            width: 60px;
+            height: 60px;
+            position: relative;
+        }
+        .clock-face {
+            width: 100%;
+            height: 100%;
+            border: 4px solid #f0f8ff;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 15px rgba(135, 206, 235, 0.2);
+        }
+        .clock-mark {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            width: 2px;
+            height: 6px;
+            background-color: #87ceeb;
+            transform-origin: 50% 20px;
+        }
+        .clock-mark:nth-child(1) { transform: rotate(0deg); }
+        .clock-mark:nth-child(2) { transform: rotate(30deg); }
+        .clock-mark:nth-child(3) { transform: rotate(60deg); }
+        .clock-mark:nth-child(4) { transform: rotate(90deg); }
+        .clock-mark:nth-child(5) { transform: rotate(120deg); }
+        .clock-mark:nth-child(6) { transform: rotate(150deg); }
+        .clock-mark:nth-child(7) { transform: rotate(180deg); }
+        .clock-mark:nth-child(8) { transform: rotate(210deg); }
+        .clock-mark:nth-child(9) { transform: rotate(240deg); }
+        .clock-mark:nth-child(10) { transform: rotate(270deg); }
+        .clock-mark:nth-child(11) { transform: rotate(300deg); }
+        .clock-mark:nth-child(12) { transform: rotate(330deg); }
+        .clock-hour {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 3px;
+            height: 18px;
+            background-color: #4a90e2;
+            border-radius: 2px;
+            transform-origin: 50% 100%;
+            animation: rotate 12s linear infinite;
+        }
+        .clock-minute {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 2px;
+            height: 25px;
+            background-color: #87ceeb;
+            border-radius: 2px;
+            transform-origin: 50% 100%;
+            animation: rotate 1s linear infinite;
+        }
+        @keyframes rotate {
+            0% { transform: translateX(-50%) rotate(0deg); }
+            100% { transform: translateX(-50%) rotate(360deg); }
+        }
+        .loader-text {
+            margin-top: 20px;
+            color: #666666;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+        /* 头部样式 - 保持一致 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 25px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            text-decoration: none;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .nav-btn {
+            padding: 8px 20px;
+            border: 1px solid #e8e8e8;
+            border-radius: 20px;
+            background-color: #ffffff;
+            color: #333333;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .nav-btn.active {
+            background-color: #87ceeb;
+            color: #ffffff;
+            border-color: #87ceeb;
+            box-shadow: 0 2px 8px rgba(135, 206, 235, 0.2);
+        }
+        .nav-btn:hover:not(.active) {
+            border-color: #87ceeb;
+            color: #87ceeb;
+        }
+        /* 主容器样式 */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: none;
+        }
+        .container.visible {
+            display: block;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #333333;
+            font-size: 28px;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        /* 关于我们内容样式 */
+        .about-content {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f8f8f8;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f8ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::before {
+            content: "";
+            width: 6px;
+            height: 20px;
+            background-color: #87ceeb;
+            border-radius: 3px;
+        }
+        .about-text {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+        .about-text strong {
+            color: #4a90e2;
+        }
+        /* 代码仓库地址样式 */
+        .repository-links {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #87ceeb;
+        }
+        .repo-link {
+            display: block;
+            color: #4a90e2;
+            text-decoration: none;
+            margin: 10px 0;
+            padding-left: 10px;
+            transition: all 0.3s ease;
+        }
+        .repo-link:hover {
+            color: #3a80d2;
+            padding-left: 15px;
+        }
+        .repo-link::before {
+            content: "→";
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+        /* 长期支持承诺部分 */
+        .commitment-section {
+            background-color: #f0f8ff;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 1px solid #e6f7ff;
+        }
+        .commitment-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .commitment-item {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(135, 206, 235, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .commitment-item:hover {
+            transform: translateY(-5px);
+        }
+        .commitment-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #e6f7ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            color: #4a90e2;
+            font-size: 20px;
+        }
+        .commitment-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .commitment-desc {
+            color: #666;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        /* 联系我们部分 */
+        .contact-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .contact-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #4a90e2;
+            color: #ffffff;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        .contact-btn:hover {
+            background-color: #3a80d2;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+            transform: translateY(-2px);
+        }
+        /* 页脚版权信息 */
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 50px;
+            color: #999;
+            font-size: 14px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .copyright {
+            margin-bottom: 10px;
+        }
+        .icp-link {
+            color: #999;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .icp-link:hover {
+            color: #4a90e2;
+        }
+        /* 响应式优化 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding-bottom: 20px;
+            }
+            .about-content {
+                padding: 25px;
+            }
+            h1 {
+                font-size: 24px;
+                margin-bottom: 30px;
+            }
+            .section-title {
+                font-size: 20px;
+            }
+            .commitment-list {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px;
+            }
+            .about-content {
+                padding: 15px;
+            }
+            .nav-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .footer {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载容器 -->
+    <div class="loader-container" id="loader">
+        <div class="clock-loader">
+            <div class="clock-face">
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-hour"></div>
+                <div class="clock-minute"></div>
+            </div>
+        </div>
+        <div class="loader-text">加载中...</div>
+    </div>
+    
+    <!-- 主容器 -->
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <a href="/" class="logo">i-code</a>
+            <div class="nav-buttons">
+                <a href="/" class="nav-btn">作品首页</a>
+                <a href="about.html" class="nav-btn active">关于我们</a>
+            </div>
+        </div>
+        
+        <h1>关于我们</h1>
+        
+        <div class="about-content">
+            <h2 class="section-title">项目愿景</h2>
+            <p class="about-text">
+                我们是一群热爱编程与创意的开发者，致力于打造一个高质量的代码作品分享平台。自项目启动以来，我们始终相信优质的代码作品不仅需要出色的创意，更需要长期的维护与迭代。
+            </p>
+            
+            <h2 class="section-title">代码仓库</h2>
+            <div class="repository-links">
+                <a href="https://github.com/yuejiaxinabc/i.yuejiaxin.ln.cn" target="_blank" class="repo-link">GitHub地址</a>
+            </div>
+            
+            <div class="commitment-section">
+                <h2 class="section-title">我们的长期支持承诺</h2>
+                <p class="about-text">
+                    对于每一个收录在平台的作品，我们承诺提供持续性的支持与维护，确保它们能够适应技术发展并保持良好的运行状态。我们的长期支持包括：
+                </p>
+                
+                <div class="commitment-list">
+                    <div class="commitment-item">
+                        <div class="commitment-icon">📈</div>
+                        <h3 class="commitment-title">持续迭代优化</h3>
+                        <p class="commitment-desc">定期更新代码，修复潜在问题，优化性能与用户体验，确保作品与时俱进。</p>
+                    </div>
+                    
+                    <div class="commitment-item">
+                        <div class="commitment-icon">🔧</div>
+                        <h3 class="commitment-title">技术支持保障</h3>
+                        <p class="commitment-desc">提供长期的技术支持渠道，及时响应开发者的问题与需求，协助解决使用过程中遇到的困难。</p>
+                    </div>
+                    
+                    <div class="commitment-item">
+                        <div class="commitment-icon">📊</div>
+                        <h3 class="commitment-title">兼容性维护</h3>
+                        <p class="commitment-desc">跟踪主流技术平台的更新，确保作品在新环境下依然能够正常运行，减少迁移成本。</p>
+                    </div>
+                    
+                    <div class="commitment-item">
+                        <div class="commitment-icon">💡</div>
+                        <h3 class="commitment-title">社区反馈整合</h3>
+                        <p class="commitment-desc">重视用户反馈，将有价值的建议纳入开发计划，让作品持续贴近实际需求。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <h2 class="section-title">我们的理念</h2>
+            <p class="about-text">
+                我们坚信，<strong>好的代码作品应该像生命体一样不断成长</strong>。短期的创意实现只是开始，长期的支持与迭代才能让作品真正发挥价值。无论是表白类的创意工具，还是有趣的小游戏，我们都会投入精力进行持续维护，让每一个作品都能保持活力。
+            </p>
+            
+            <div class="contact-section">
+                <h2 class="section-title">联系我们</h2>
+                <p class="about-text">如果您对我们的项目有任何建议或疑问，欢迎随时与我们联系。我们期待听到您的声音，共同推动平台的发展。</p>
+                <a href="mailto:hajimi.aws@gmail.com" class="contact-btn">发送邮件联系我们</a>
+            </div>
+        </div>
+        
+        <!-- 页脚版权信息 -->
+        <div class="footer">
+            <div class="copyright">© 版权所有 小岳</div>
+            <a href="https://beian.miit.gov.cn/" target="_blank" class="icp-link">辽ICP备2024021889号-2</a>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+            // 模拟加载过程
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+            }, 800);
+            
+            // 设置超时，确保加载界面不会无限显示
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

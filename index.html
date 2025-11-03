@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i-code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", "PingFang SC", sans-serif;
+        }
+        body {
+            background-color: #ffffff;
+            padding: 20px 0;
+        }
+        /* 加载样式 - 真实时钟样式 */
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        .loader-container.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        /* 时钟容器 */
+        .clock-loader {
+            width: 60px;
+            height: 60px;
+            position: relative;
+        }
+        /* 时钟表盘 */
+        .clock-face {
+            width: 100%;
+            height: 100%;
+            border: 4px solid #f0f8ff;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 15px rgba(135, 206, 235, 0.2);
+        }
+        /* 时钟刻度 */
+        .clock-mark {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            width: 2px;
+            height: 6px;
+            background-color: #87ceeb;
+            transform-origin: 50% 20px;
+        }
+        /* 生成12个刻度 */
+        .clock-mark:nth-child(1) { transform: rotate(0deg); }
+        .clock-mark:nth-child(2) { transform: rotate(30deg); }
+        .clock-mark:nth-child(3) { transform: rotate(60deg); }
+        .clock-mark:nth-child(4) { transform: rotate(90deg); }
+        .clock-mark:nth-child(5) { transform: rotate(120deg); }
+        .clock-mark:nth-child(6) { transform: rotate(150deg); }
+        .clock-mark:nth-child(7) { transform: rotate(180deg); }
+        .clock-mark:nth-child(8) { transform: rotate(210deg); }
+        .clock-mark:nth-child(9) { transform: rotate(240deg); }
+        .clock-mark:nth-child(10) { transform: rotate(270deg); }
+        .clock-mark:nth-child(11) { transform: rotate(300deg); }
+        .clock-mark:nth-child(12) { transform: rotate(330deg); }
+        /* 时针分针 */
+        .clock-hour {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 3px;
+            height: 18px;
+            background-color: #4a90e2;
+            border-radius: 2px;
+            transform-origin: 50% 100%;
+            animation: rotate 12s linear infinite;
+        }
+        .clock-minute {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 2px;
+            height: 25px;
+            background-color: #87ceeb;
+            border-radius: 2px;
+            transform-origin: 50% 100%;
+            animation: rotate 1s linear infinite;
+        }
+        /* 指针旋转动画 */
+        @keyframes rotate {
+            0% { transform: translateX(-50%) rotate(0deg); }
+            100% { transform: translateX(-50%) rotate(360deg); }
+        }
+        .loader-text {
+            margin-top: 20px;
+            color: #666666;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+        /* 头部样式 - 优化间距和配色 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 25px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .search-box {
+            display: flex;
+            max-width: 320px;
+            width: 100%;
+            height: 42px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 0 15px;
+            border: 1px solid #e8e8e8;
+            border-radius: 21px 0 0 21px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        .search-input:focus {
+            border-color: #87ceeb;
+            box-shadow: 0 0 0 2px rgba(135, 206, 235, 0.1);
+        }
+        .search-btn {
+            padding: 0 22px;
+            background-color: #87ceeb;
+            color: #ffffff;
+            border: none;
+            border-radius: 0 21px 21px 0;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        .search-btn:hover {
+            background-color: #7ec0e0;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .filter-btn {
+            padding: 8px 20px;
+            border: 1px solid #e8e8e8;
+            border-radius: 20px;
+            background-color: #ffffff;
+            color: #333333;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .filter-btn.active {
+            background-color: #87ceeb;
+            color: #ffffff;
+            border-color: #87ceeb;
+            box-shadow: 0 2px 8px rgba(135, 206, 235, 0.2);
+        }
+        .filter-btn:hover:not(.active) {
+            border-color: #87ceeb;
+            color: #87ceeb;
+        }
+        /* 关于我们按钮特殊样式 */
+        .about-btn {
+            background-color: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+        .about-btn:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+        /* 主容器样式 - 优化留白和阴影 */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: none;
+        }
+        .container.visible {
+            display: block;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 35px;
+            color: #333333;
+            font-size: 28px;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 25px;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            cursor: default;
+            border: 1px solid #f8f8f8;
+            transition: all 0.4s ease;
+        }
+        /* 鼠标悬浮效果 */
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 20px rgba(135, 206, 235, 0.15);
+            border-color: #e6f7ff;
+            background-color: #f0f8ff;
+        }
+        .card-img {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            border-bottom: 1px solid #f5f5f5;
+            transition: transform 0.5s ease;
+        }
+        .card:hover .card-img {
+            transform: scale(1.03);
+        }
+        .card-content {
+            padding: 20px;
+        }
+        .card-title {
+            font-size: 19px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333333;
+            transition: color 0.3s ease;
+        }
+        .card:hover .card-title {
+            color: #4a90e2;
+        }
+        .card-desc {
+            font-size: 14px;
+            color: #666666;
+            line-height: 1.6;
+            transition: color 0.3s ease;
+        }
+        .card:hover .card-desc {
+            color: #444444;
+        }
+        /* 卡片操作按钮样式 */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .demo-btn {
+            background-color: #87ceeb;
+            color: white;
+        }
+        .demo-btn:hover {
+            background-color: #7ec0e0;
+            transform: translateY(-2px);
+        }
+        .download-btn {
+            background-color: #f8f8f8;
+            color: #333;
+            border: 1px solid #e8e8e8;
+        }
+        .download-btn:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+        }
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+        
+        /* 卡片计数样式 */
+        .card-count {
+            text-align: center;
+            margin: 25px 0;
+            padding: 15px;
+            color: #666;
+            font-size: 16px;
+            border-top: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f0f0f0;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        /* 页脚样式 */
+        .footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 40px;
+            color: #999;
+            font-size: 14px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .copyright {
+            margin-bottom: 10px;
+        }
+        .icp-link {
+            color: #999;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .icp-link:hover {
+            color: #4a90e2;
+        }
+        
+        /* 响应式优化 - 更细腻的适配 */
+        @media (max-width: 1200px) {
+            .card-grid {
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                gap: 22px;
+            }
+        }
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 18px;
+                padding-bottom: 20px;
+            }
+            .search-box {
+                max-width: 100%;
+            }
+            .card-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 18px;
+            }
+            h1 {
+                font-size: 24px;
+                margin-bottom: 25px;
+            }
+            .card-content {
+                padding: 16px;
+            }
+            .card-title {
+                font-size: 17px;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px;
+            }
+            .card-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .filter-buttons {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .card-img {
+                aspect-ratio: 16/9;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载容器 - 时钟样式 -->
+    <div class="loader-container" id="loader">
+        <div class="clock-loader">
+            <div class="clock-face">
+                <!-- 12个时钟刻度 -->
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <div class="clock-mark"></div>
+                <!-- 时针分针 -->
+                <div class="clock-hour"></div>
+                <div class="clock-minute"></div>
+            </div>
+        </div>
+        <div class="loader-text">加载中...</div>
+    </div>
+    <!-- 主容器 -->
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="搜索作品名称或简介...">
+                <button class="search-btn">搜索</button>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="表白">表白</button>
+                <button class="filter-btn" data-filter="游戏">游戏</button>
+                <button class="filter-btn about-btn" onclick="location.href='about.html'">关于我们</button>
+            </div>
+        </div>
+        <h1>i-code</h1>
+        <div class="card-grid" id="cardGrid">
+            <!-- 卡片1-表白类 -->
+            <div class="card" data-category="表白" data-search="爱不仅限于代码中用 HTML+CSS+JavaScript 代码，包含像素爱心动画和满屏暖心提示框效果。">
+                <img src="/image/lab1.png" alt="lab1" class="card-img">
+                <div class="card-content">
+                    <h2 class="card-title">爱不仅限于代码中</h2>
+                    <p class="card-desc">用 HTML+CSS+JavaScript 代码，包含像素爱心动画和满屏暖心提示框效果。</p>
+                    <div class="card-actions">
+                        <button class="action-btn demo-btn" data-demo="/zh/code/lab1/">查看演示</button>
+                        <button class="action-btn download-btn" data-github="https://github.com/yuejiaxinabc/i.yuejiaxin.ln.cn/tree/main/code/lab1">下载代码</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 卡片2-表白类 -->
+            <div class="card" data-category="游戏" data-search="快来一场酣畅淋漓的战争游戏吧">
+                <img src="/image/gam1.png" alt="满屏弹窗" class="card-img">
+                <div class="card-content">
+                    <h2 class="card-title">维京战争</h2>
+                    <p class="card-desc">由 HTML+CSS+JavaScript 代码构成，快来一场酣畅淋漓的战争游戏吧</p>
+                    <div class="card-actions">
+                        <button class="action-btn demo-btn" data-demo="/zh/code/gam1/">查看演示</button>
+                        <button class="action-btn download-btn" data-github="https://github.com/yuejiaxinabc/i.yuejiaxin.ln.cn/tree/main/code/gam1">下载代码</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 卡片3-表白类 -->
+            <div class="card" data-category="表白" data-search="Web弹窗 部署在Web服务器上的弹窗效果，支持网页端访问。">
+                <img src="image/web-popup.png" alt="Web弹窗" class="card-img">
+                <div class="card-content">
+                    <h2 class="card-title">Web版弹窗代码</h2>
+                    <p class="card-desc">部署在Web服务器上的弹窗效果，支持网页端访问。</p>
+                    <div class="card-actions">
+                        <button class="action-btn demo-btn" data-demo="/zh/web-popup">查看演示</button>
+                        <button class="action-btn download-btn" data-github="https://github.com/yourusername/web-popup">下载代码</button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- 卡片计数区域 -->
+        <div class="card-count" id="cardCount">
+            当前共有 <span id="totalCount"></span> 个作品
+        </div>
+        
+        <!-- 页脚版权信息 -->
+        <div class="footer">
+            <div class="copyright">© 版权所有 小岳</div>
+            <a href="https://beian.miit.gov.cn/" target="_blank" class="icp-link">辽ICP备2024021889号-2</a>
+        </div>
+    </div>
+
+    <script>
+        // 预加载所有卡片图片
+        function preloadImages() {
+            return new Promise((resolve) => {
+                const cardImages = document.querySelectorAll('.card-img');
+                const imageSources = Array.from(cardImages).map(img => img.src);
+                let loadedCount = 0;
+
+                if (imageSources.length === 0) {
+                    resolve();
+                    return;
+                }
+
+                imageSources.forEach(src => {
+                    const img = new Image();
+                    img.onload = () => {
+                        loadedCount++;
+                        if (loadedCount === imageSources.length) {
+                            resolve();
+                        }
+                    };
+                    img.onerror = () => {
+                        loadedCount++;
+                        if (loadedCount === imageSources.length) {
+                            resolve();
+                        }
+                    };
+                    img.src = src;
+                });
+            });
+        }
+
+        // 更新卡片计数
+        function updateCardCount() {
+            const visibleCards = document.querySelectorAll('.card[style="display: block"], .card:not([style])');
+            const totalCount = document.querySelectorAll('.card').length;
+            const visibleCount = visibleCards.length;
+            
+            const countElement = document.getElementById('totalCount');
+            
+            if (visibleCount === totalCount) {
+                countElement.textContent = totalCount;
+            } else {
+                countElement.textContent = `${visibleCount}/${totalCount}`;
+            }
+        }
+
+        // 初始化页面功能
+        function initPage() {
+            // 显示主容器
+            document.getElementById('mainContainer').classList.add('visible');
+            
+            // 初始化搜索和筛选功能
+            initSearchAndFilter();
+            
+            // 初始化卡片按钮事件
+            initCardActions();
+            
+            // 更新卡片计数
+            updateCardCount();
+        }
+
+        // 初始化搜索和筛选功能
+        function initSearchAndFilter() {
+            const searchInput = document.querySelector('.search-input');
+            const searchBtn = document.querySelector('.search-btn');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const cards = document.querySelectorAll('.card');
+            
+            // 搜索功能
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+                
+                cards.forEach(card => {
+                    const searchData = card.dataset.search.toLowerCase();
+                    const category = card.dataset.category;
+                    
+                    const matchesSearch = searchData.includes(searchTerm);
+                    const matchesFilter = activeFilter === 'all' || category === activeFilter;
+                    
+                    if (matchesSearch && matchesFilter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // 检查是否有结果显示
+                const visibleCards = document.querySelectorAll('.card[style="display: block"]');
+                let noResults = document.querySelector('.no-results');
+                
+                if (visibleCards.length === 0) {
+                    if (!noResults) {
+                        noResults = document.createElement('div');
+                        noResults.className = 'no-results';
+                        noResults.textContent = '没有找到匹配的作品';
+                        document.getElementById('cardGrid').appendChild(noResults);
+                    }
+                } else if (noResults) {
+                    noResults.remove();
+                }
+                
+                // 更新卡片计数
+                updateCardCount();
+            }
+            
+            // 搜索按钮点击事件
+            searchBtn.addEventListener('click', performSearch);
+            
+            // 搜索输入框回车事件
+            searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // 筛选按钮点击事件
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 移除所有按钮的active类
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    // 为当前按钮添加active类
+                    btn.classList.add('active');
+                    // 执行搜索
+                    performSearch();
+                });
+            });
+        }
+
+        // 初始化卡片按钮事件
+        function initCardActions() {
+            // 查看演示按钮
+            document.querySelectorAll('.demo-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    const demoUrl = this.getAttribute('data-demo');
+                    if (demoUrl) {
+                        window.open(demoUrl, '_blank');
+                    }
+                });
+            });
+            
+            // 下载代码按钮
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    const githubUrl = this.getAttribute('data-github');
+                    if (githubUrl) {
+                        window.location.href = githubUrl;
+                    }
+                });
+            });
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', () => {
+            // 预加载图片
+            preloadImages().then(() => {
+                // 图片加载完成后，延迟显示主内容以展示加载动画
+                setTimeout(() => {
+                    document.getElementById('loader').classList.add('hidden');
+                    initPage();
+                }, 800); // 延迟800ms，确保加载动画有足够展示时间
+            }).catch(() => {
+                // 即使图片加载失败也显示内容
+                document.getElementById('loader').classList.add('hidden');
+                initPage();
+            });
+            
+            // 设置超时，确保加载界面不会无限显示
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+                initPage();
+            }, 5000); // 5秒超时
+        });
+    </script>
+</body>
+</html>
